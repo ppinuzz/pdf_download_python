@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Lo script in esame scarica dei pdf da internet, quindi:
+.pdf
