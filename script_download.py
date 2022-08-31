@@ -32,7 +32,36 @@ import getpass
 
 
 def download_pdf(url_sito, path_cartella_download='C:/Users/'+getpass.getuser()+'/Downloads/MIT_OCW'):
-
+    """
+    Accede alle download pages raggiungibili dall'url fornito e scarica i file pdf presenti in esse
+    (pensata per il sito MIT OCW, la cua pagina 'Lecture Notes' rimanda a più pagine, una per ogni pdf)
+    I file sono salvati nella cartella C:/Users/nome_utente/Downloads/MIT_OCW se non viene specificato un percorso differente
+    
+    Parameters
+    ----------
+    url_sito : stringa 
+        url della pagina da cui si accede alle download pages dei singoli file
+        (e.g. per MIT OCW, è la pagina 'Lecture Notes' o 'Assignments')
+    
+    path_cartella_download : stringa, OPTIONAL
+        path della cartella in cui verranno salvati i file scaricati (se non esiste, viene creata)
+        può essere fornita in 3 modi diversi:
+            1) come RAW STRING: r'C:\Andrea\download'
+            2) con gli slash '/' al posto dei backslash '\': 'C:/Andrea/download'
+            3) con i doppi slash: 'C:\\Andrea\\download'
+        
+    Returns
+    -------
+    None.
+    
+    Esempio d'uso
+    -------
+    url_sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
+    path_cartella_download = r'C:\Andrea\MIT OCW downloads'
+    
+    download_pdf(url_sito, path_cartella_download)
+    """
+    
     #%% Ottenere l'elenco dei link che portano alle pagine di download
 
     # scarica il webpage data, però è codificato ("surrounded by HTML tags")
@@ -66,14 +95,12 @@ def download_pdf(url_sito, path_cartella_download='C:/Users/'+getpass.getuser()+
 
 
     #%% Scaricare i pdf
-
     # ora che l'elenco dei link è stato ottenuto, bisogna andare in ognuno di essi e scaricare il file
 
     # se l'input viene fornito con gli slash \ al posto dei backslash (caso tipico), lo converte in raw string
-path_cartella_download = fr'{path_cartella_download}'
+    path_cartella_download = fr'{path_cartella_download}'
     if not os.path.exists(path_cartella_download):
         os.mkdir(path_cartella_download)
-
 
     for url in link_completi:
         # "GET request", credo che sia per avere accesso al codice HTML
