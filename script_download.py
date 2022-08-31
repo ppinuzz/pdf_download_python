@@ -31,6 +31,63 @@ import os
 import getpass
 
 
+def get_url_list(url_sito, parola_flag):
+    """
+    Ottiene l'elenco dei link che portano alle pagine di download
+
+    Parameters
+    ----------
+    url_sito : stringa 
+        url della pagina da cui si accede alle download pages dei singoli file
+        (e.g. per MIT OCW, è la pagina 'Lecture Notes' o 'Assignments')
+    parola_flag : string
+        parola contenuta nei link delle pagine di download dei .pdf che permette di distinguerli dagli altri link
+        contenuti nella stessa pagina (e.g. per MIT OCW, 'resources' è presente solo nei link dei .pdf)
+
+    Returns
+    -------
+    link_completi : list
+        elenco dei link delle pagine di download dei pdf
+    
+    Esempio d'uso
+    -------
+    url_sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
+    parola_flag = 'resources'
+    
+    get_url_list(url_sito, parola_flag)
+    """
+    
+    # scarica il webpage data, però è codificato ("surrounded by HTML tags")
+    html_pagina = request.urlopen(url_sito)
+    # BeautifoulSoup è un parser per l'HTML e restituisce un HTML leggibile anche da un umano dopo il parsing
+    soup = BeautifulSoup(html_pagina, "lxml")
+    
+    elenco_link = []
+    # il codice HTML dopo il parsing viene fatto passare e, quando si trova la 'a' (che, a quanto pare, indica un link nel linguaggio HTML),
+    # il corrispondente link viene scaricato
+    # Così si ottengono tutti i link esistenti, ma solo quelli che portano al download dei file servono: la parola_flag è contenuta solo nei
+    # link utili e solamente questi vengono salvati nell'elenco_link
+    for link in soup.find_all('a'):
+        if str(link).find(parola_flag) != -1:
+            elenco_link.append(link.get('href'))
+    
+    # i link ottenuti finora sono "mozzi": manca la parte iniziale che indica il protocollo + dominio (i.e. https://ocw.mit.edu)
+    # Dato che ogni link ha sempre la forma https://dominio/..., si vede che l'url iniziale è tutto ciò che c'è prima del terzo '/'
+    # (l'ultimo '/' non serve perché i link in elenco_link contengono già la '/' all'inizio)
+
+    # taglia l'url usando '/' come separatore e lo rimette insieme inserendo '/' tra ogni pezzi, usando pezzi_url[0:3] si stanno
+    # considerando solo i primi 3 pezzi (i.e. tutto ciò che c'è prima del terzo '/')
+    pezzi_url = url_sito.split('/')     
+    url_base = '/'.join(pezzi_url[0:3])
+
+    # gli url vengono poi "ricuciti"
+    link_completi = []
+    for link_i in elenco_link:
+        link_completi.append(url_base + link_i)
+    
+    return link_completi
+
+
 def download_pdf(url_sito, path_cartella_download='C:/Users/'+getpass.getuser()+'/Downloads/MIT_OCW'):
     """
     Accede alle download pages raggiungibili dall'url fornito e scarica i file pdf presenti in esse
@@ -62,36 +119,13 @@ def download_pdf(url_sito, path_cartella_download='C:/Users/'+getpass.getuser()+
     download_pdf(url_sito, path_cartella_download)
     """
     
-    #%% Ottenere l'elenco dei link che portano alle pagine di download
+    #%% 
 
-    # scarica il webpage data, però è codificato ("surrounded by HTML tags")
-    html_pagina = request.urlopen(url_sito)
-    # BeautifoulSoup è un parser per l'HTML e restituisce un HTML leggibile anche da un umano dopo il parsing
-    soup = BeautifulSoup(html_pagina, "lxml")
 
-    elenco_link = []
-    # il codice HTML dopo il parsing viene fatto passare e, quando si trova la 'a' (che, a quanto pare, indica un link nel linguaggio HTML),
-    # il corrispondente link viene scaricato
-    # Così si ottengono tutti i link esistenti, ma solo quelli che portano al download dei file servono: la parola_flag è contenuta solo nei
-    # link utili e solamente questi vengono salvati nell'elenco_link
-    parola_flag = 'resources'
-    for link in soup.find_all('a'):
-        if str(link).find(parola_flag) != -1:
-            elenco_link.append(link.get('href'))
 
-    # i link ottenuti finora sono "mozzi": manca la parte iniziale che indica il protocollo + dominio (i.e. https://ocw.mit.edu)
-    # Dato che ogni link ha sempre la forma https://dominio/..., si vede che l'url iniziale è tutto ciò che c'è prima del terzo '/'
-    # (l'ultimo '/' non serve perché i link in elenco_link contengono già la '/' all'inizio)
 
-    # taglia l'url usando '/' come separatore e lo rimette insieme inserendo '/' tra ogni pezzi, usando pezzi_url[0:3] si stanno
-    # considerando solo i primi 3 pezzi (i.e. tutto ciò che c'è prima del terzo '/')
-    pezzi_url = url_sito.split('/')     
-    url_base = '/'.join(pezzi_url[0:3])
 
-    # gli url vengono poi "ricuciti"
-    link_completi = []
-    for link_i in elenco_link:
-        link_completi.append(url_base + link_i)
+
 
 
     #%% Scaricare i pdf
@@ -129,19 +163,6 @@ def download_pdf(url_sito, path_cartella_download='C:/Users/'+getpass.getuser()+
                 f.write(requests.get(url_del_pdf).content)
 
 
-def download_app():
-    """Legge l'url fornito dall'utente e il path della cartella e li passa in input alla funzione per il download vero e proprio"""
-    
-    url_sito = ent_url.get()
-    path_cartella_download = ent_cartella.get()
-    download_pdf(url_sito, path_cartella_download)
-
-
-def cancella():
-    """Termina l'esecuzione dell'app improvvisamente"""
-    
-    exit()
-
 #%% Main del file
 
 #sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
@@ -150,42 +171,3 @@ def cancella():
 #download_pdf(sito, cartella)
 #download_pdf(sito)
 
-
-#%% Interfaccia grafica
-
-import tkinter as tk
-
-win = tk.Tk()
-win.title('Download automatico pdf')
-win.rowconfigure([0,1,2,3], weight=1)
-win.columnconfigure(0, weight=1)
-
-lbl_nota = tk.Label(master=win, text="NOTA: l'app è ancora in versione beta ed è stata originariamente pensata per il sito del MIT OCW")
-
-frm_input = tk.Frame(master=win, relief=tk.SUNKEN, borderwidth=2)
-lbl_url = tk.Label(master=frm_input, text='Url: ')
-ent_url = tk.Entry(master=frm_input)
-lbl_cartella = tk.Label(master=frm_input, text='Cartella: ')
-ent_cartella = tk.Entry(master=frm_input)
-
-lbl_log = tk.Label(master=win)
-
-frm_bottoni = tk.Frame(master=win)
-btn_download = tk.Button(master=frm_bottoni, text='Download!', command=download_app)
-btn_cancel = tk.Button(master=frm_bottoni, text='Cancella')
-
-lbl_nota.grid(row=0, column=0, sticky='ew', pady=5)
-
-frm_input.grid(row=1, column=0, sticky='ew')
-lbl_url.grid(row=0, column=0, sticky='e')
-ent_url.grid(row=0, column=1, sticky='nsew')
-lbl_cartella.grid(row=1, column=0, sticky='e')
-ent_cartella.grid(row=1, column=1, sticky='nsew')
-
-lbl_log.grid(row=2, column=0, sticky='ew')
-
-frm_bottoni.grid(row=3, column=0, sticky='ew')
-btn_cancel.pack(side=tk.RIGHT, padx=10)
-btn_download.pack(side=tk.RIGHT)
-
-win.mainloop()
