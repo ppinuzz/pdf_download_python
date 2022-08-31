@@ -129,10 +129,63 @@ def download_pdf(url_sito, path_cartella_download='C:/Users/'+getpass.getuser()+
                 f.write(requests.get(url_del_pdf).content)
 
 
+def download_app():
+    """Legge l'url fornito dall'utente e il path della cartella e li passa in input alla funzione per il download vero e proprio"""
+    
+    url_sito = ent_url.get()
+    path_cartella_download = ent_cartella.get()
+    download_pdf(url_sito, path_cartella_download)
+
+
+def cancella():
+    """Termina l'esecuzione dell'app improvvisamente"""
+    
+    exit()
+
 #%% Main del file
 
-sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
+#sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
 #cartella = r'C:\Andrea\MIT OCW downloads'
 
 #download_pdf(sito, cartella)
-download_pdf(sito)
+#download_pdf(sito)
+
+
+#%% Interfaccia grafica
+
+import tkinter as tk
+
+win = tk.Tk()
+win.title('Download automatico pdf')
+win.rowconfigure([0,1,2,3], weight=1)
+win.columnconfigure(0, weight=1)
+
+lbl_nota = tk.Label(master=win, text="NOTA: l'app è ancora in versione beta ed è stata originariamente pensata per il sito del MIT OCW")
+
+frm_input = tk.Frame(master=win, relief=tk.SUNKEN, borderwidth=2)
+lbl_url = tk.Label(master=frm_input, text='Url: ')
+ent_url = tk.Entry(master=frm_input)
+lbl_cartella = tk.Label(master=frm_input, text='Cartella: ')
+ent_cartella = tk.Entry(master=frm_input)
+
+lbl_log = tk.Label(master=win)
+
+frm_bottoni = tk.Frame(master=win)
+btn_download = tk.Button(master=frm_bottoni, text='Download!', command=download_app)
+btn_cancel = tk.Button(master=frm_bottoni, text='Cancella')
+
+lbl_nota.grid(row=0, column=0, sticky='ew', pady=5)
+
+frm_input.grid(row=1, column=0, sticky='ew')
+lbl_url.grid(row=0, column=0, sticky='e')
+ent_url.grid(row=0, column=1, sticky='nsew')
+lbl_cartella.grid(row=1, column=0, sticky='e')
+ent_cartella.grid(row=1, column=1, sticky='nsew')
+
+lbl_log.grid(row=2, column=0, sticky='ew')
+
+frm_bottoni.grid(row=3, column=0, sticky='ew')
+btn_cancel.pack(side=tk.RIGHT, padx=10)
+btn_download.pack(side=tk.RIGHT)
+
+win.mainloop()
