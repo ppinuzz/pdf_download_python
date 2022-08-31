@@ -28,6 +28,7 @@ from urllib import request
 from bs4 import BeautifulSoup
 # per l'interazione con l'OS
 import os
+from sys import platform   # dà il nome dell'OS su cui sta girando lo script
 import getpass
 
 
@@ -40,7 +41,7 @@ def get_url_list(url_sito, parola_flag):
     url_sito : stringa 
         url della pagina da cui si accede alle download pages dei singoli file
         (e.g. per MIT OCW, è la pagina 'Lecture Notes' o 'Assignments')
-    parola_flag : string
+    parola_flag : stringa
         parola contenuta nei link delle pagine di download dei .pdf che permette di distinguerli dagli altri link
         contenuti nella stessa pagina (e.g. per MIT OCW, 'resources' è presente solo nei link dei .pdf)
 
@@ -88,54 +89,58 @@ def get_url_list(url_sito, parola_flag):
     return link_completi
 
 
-def download_pdf(url_sito, path_cartella_download='C:/Users/'+getpass.getuser()+'/Downloads/MIT_OCW'):
+def download_pdf(link_completi, path_cartella_download='nessuno'):
     """
-    Accede alle download pages raggiungibili dall'url fornito e scarica i file pdf presenti in esse
-    (pensata per il sito MIT OCW, la cua pagina 'Lecture Notes' rimanda a più pagine, una per ogni pdf)
-    I file sono salvati nella cartella C:/Users/nome_utente/Downloads/MIT_OCW se non viene specificato un percorso differente
+    Scarica i file .pdf accessibili dai link di download forniti e li salva in una cartella.
+    il valore di default default dipende dal sistema operativo:
+        C:/Users/nome_utente/Downloads/MIT_OCW          su Windows
+        /home/nome_utente/Downloads/MIT_OCW             su Linux   
     
     Parameters
     ----------
-    url_sito : stringa 
-        url della pagina da cui si accede alle download pages dei singoli file
-        (e.g. per MIT OCW, è la pagina 'Lecture Notes' o 'Assignments')
+    link_completi : list 
+        elenco dei link delle pagine di download dei pdf
     
     path_cartella_download : stringa, OPTIONAL
         path della cartella in cui verranno salvati i file scaricati (se non esiste, viene creata)
-        può essere fornita in 3 modi diversi:
+        può essere fornita in 2 modi diversi:
             1) come RAW STRING: r'C:\Andrea\download'
             2) con gli slash '/' al posto dei backslash '\': 'C:/Andrea/download'
-            3) con i doppi slash: 'C:\\Andrea\\download'
-        
+        il valore di default default dipende dal sistema operativo:
+            C:/Users/nome_utente/Downloads/MIT_OCW          su Windows
+            /home/nome_utente/Downloads/MIT_OCW             su Linux
+    
     Returns
     -------
     None.
     
     Esempio d'uso
     -------
-    url_sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
+    link_completi = ['https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/resources/ha1/',
+                     'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/resources/ha2/']
     path_cartella_download = r'C:\Andrea\MIT OCW downloads'
     
-    download_pdf(url_sito, path_cartella_download)
+    download_pdf(link_completi, path_cartella_download)
     """
+
+    # percorso di default della download folder
+    if 'win' in platform:
+        path_default = 'C:/Users/' + getpass.getuser() + '/Downloads/MIT_OCW'
+    elif 'linux' in platform:
+        path_default = '/home/' + getpass.getuser() + '/Downloads/MIT_OCW'
+
+    # se non è assegnato un valore al path della download folder, viene usato il default
+    if 'nessuno' in path_cartella_download:
+        path_cartella_download = path_default
+    # le raw string vengono gestite mettendo un '\\' al posto del '\' singolo e,
+    # per poter essere usato anche su Linux, i '\' vanno sostituiti con gli '/'
+    elif '\\' in path_cartella_download:
+        path_cartella_download.replace('\\', '/')
     
-    #%% 
-
-
-
-
-
-
-
-
-    #%% Scaricare i pdf
-    # ora che l'elenco dei link è stato ottenuto, bisogna andare in ognuno di essi e scaricare il file
-
-    # se l'input viene fornito con gli slash \ al posto dei backslash (caso tipico), lo converte in raw string
-    path_cartella_download = fr'{path_cartella_download}'
+    # crea la cartella se non esiste già
     if not os.path.exists(path_cartella_download):
         os.mkdir(path_cartella_download)
-
+    
     for url in link_completi:
         # "GET request", credo che sia per avere accesso al codice HTML
         my_file = requests.get(url)
@@ -163,11 +168,45 @@ def download_pdf(url_sito, path_cartella_download='C:/Users/'+getpass.getuser()+
                 f.write(requests.get(url_del_pdf).content)
 
 
+def download_main(url_sito, parola_flag, path_cartella_download='nessuno'):
+    """
+    Scarica i pdf dalle download pages raggiungibili dall'url fornito e li salva nella cartella indicata.
+
+    Parameters
+    ----------
+    url_sito : stringa 
+        url della pagina da cui si accede alle download pages dei singoli file
+        (e.g. per MIT OCW, è la pagina 'Lecture Notes' o 'Assignments')
+    parola_flag : stringa
+        parola contenuta nei link delle pagine di download dei .pdf che permette di distinguerli dagli altri link
+        contenuti nella stessa pagina (e.g. per MIT OCW, 'resources' è presente solo nei link dei .pdf)
+    path_cartella_download : stringa, OPTIONAL
+        path della cartella in cui verranno salvati i file scaricati (se non esiste, viene creata)
+        può essere fornita in 2 modi diversi:
+            1) come RAW STRING: r'C:\Andrea\download'
+            2) con gli slash '/' al posto dei backslash '\': 'C:/Andrea/download'
+        il valore di default default dipende dal sistema operativo:
+            C:/Users/nome_utente/Downloads/MIT_OCW          su Windows
+            /home/nome_utente/Downloads/MIT_OCW             su Linux        
+
+    Returns
+    -------
+    None.
+
+    """
+    
+    elenco_link = get_url_list(url_sito, parola_flag)
+    download_pdf(elenco_link, path_cartella_download)
+
+
+
 #%% Main del file
 
-#sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
-#cartella = r'C:\Andrea\MIT OCW downloads'
+sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
+#cartella = '/home/andrea/Downloads'
+#cartella = r'/home/andrea/Downloads'
+parola_flag = 'resources'
 
-#download_pdf(sito, cartella)
-#download_pdf(sito)
+#download_main(sito, parola_flag, cartella)
+download_main(sito, parola_flag)
 
