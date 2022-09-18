@@ -26,10 +26,14 @@ import requests
 from urllib.parse import urljoin
 from urllib import request
 from bs4 import BeautifulSoup
+
 # per l'interazione con l'OS
 import os
 from sys import platform   # dà il nome dell'OS su cui sta girando lo script
 import getpass
+
+# per la CLI
+import argparse
 
 
 def get_url_list(url_sito, parola_flag):
