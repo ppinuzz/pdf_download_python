@@ -9,7 +9,10 @@
 # 2) creare una cartella per il salvataggio + scaricare e salvare i file pdf + rinominare i file automaticamente (risposta di SIM + medyas)
 #       https://stackoverflow.com/questions/54616638/download-all-pdf-files-from-a-website-using-python
 # 3) ottenere il nome dell'utente (e.g. 'andre')
-#   https://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
+#       https://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
+# 4) leggere il contenuto di un file in una volta sola, senza gli a-capo \n
+#       https://stackoverflow.com/questions/15233340/getting-rid-of-n-when-using-readlines
+       
 
 
 # Altri siti consultati, ma scartati in seguito come soluzioni (troppo complicati o poco chiari per me):
@@ -33,7 +36,7 @@ from sys import platform   # dà il nome dell'OS su cui sta girando lo script
 import getpass
 
 # per la CLI
-import argparse
+#import argparse
 
 
 def get_url_list(url_sito, parola_flag):
@@ -203,14 +206,72 @@ def download_main(url_sito, parola_flag, path_cartella_download='nessuno'):
     download_pdf(elenco_link, path_cartella_download)
 
 
+def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
+    
+    # crea una list in cui ogni elemento è una riga del file: o sono link o sono '' (gli a-capo sono sostituiti da spazi vuoti)
+    file_ID = open(path_file, 'r')
+    elenco_link = file_ID.read().splitlines()
+    
+    
+    # percorso di default della parent folder in cui saranno salvate le cartelle del corso
+    if 'win' in platform:
+        parent_default = 'C:/Users/' + getpass.getuser() + '/Downloads/MIT_OCW'
+    elif 'linux' in platform:
+        parent_default = '/home/' + getpass.getuser() + '/Downloads/MIT_OCW'
+    
+    # se non viene data la parent folder (e quindi il valore di default 'nessuno' non viene sovrascritto),
+    # usa il valore di default
+    if 'nessuno' in parent_folder:
+        parent_folder = parent_default
+    # le raw string vengono gestite mettendo un '\\' al posto del '\' singolo e,
+    # per poter essere usato anche su Linux, i '\' vanno sostituiti con gli '/'
+    elif '\\' in parent_folder:
+        parent_folder.replace('\\', '/')
+    
+    # crea la parent folder se non esiste già
+    if not os.path.exists(parent_folder):
+        os.mkdir(parent_folder)
+    
+    for link_i in elenco_link:
+        # se la stringa è vuota, skippa l'iterazione attuale
+        if link_i == '':
+            continue
+        
+        # nel caso dei link del MIT OCW, dopo la parola 'courses' si trova il nome del corso nel link
+        # (e.g. 'https://ocw.mit.edu/courses/10-52-mechanics-of-fluids-spring-2006/pages/assignments/')
+        flag_pre_nome = 'courses'
+        pezzi_link = link_i.split('/')
+        # trova la parola in pezzi_link successiva a flag_pre_nome (trova l'indice della flag, va avanti di 1 e prende quella parola)
+        nome_corso = pezzi_link[pezzi_link.index(flag_pre_nome) + 1]
+        # e il nome del tipo di risorsa (exams, lecture-notes, assignments, ecc) che si trova 2 parole dopo il nome del corso nel link,
+        # cioè 3 parole dopo la flag (nel caso di MIT OCW)
+        nome_folder = pezzi_link[pezzi_link.index(flag_pre_nome) + 3]
+        
+        path_cartella_corso = parent_folder + '/' + nome_corso
+        path_cartella_download = path_cartella_corso + '/' + nome_folder
+        
+        # crea la folder del corso se non esiste già
+        if not os.path.exists(path_cartella_corso):
+            os.mkdir(path_cartella_corso)
+        
+        download_main(link_i, parola_flag, path_cartella_download)
+    
 
 #%% Main del file
 
-sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
+#sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
 #cartella = '/home/andrea/Downloads'
 #cartella = r'/home/andrea/Downloads'
-parola_flag = 'resources'
+#parola_flag = 'resources'
 
 #download_main(sito, parola_flag, cartella)
-download_main(sito, parola_flag)
+#download_main(sito, parola_flag)
 
+
+#%% Prova lettura più link
+
+nome_file = r'C:\Users\andre\OneDrive\Desktop\Link_MIT_OCW_prova.txt'
+parent_folder = 'C:\Andrea\MIT_OCW_download'
+parola_flag = 'resources'
+
+create_folders_download(nome_file, parola_flag, parent_folder)
