@@ -233,7 +233,8 @@ def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
         os.mkdir(parent_folder)
     
     for link_i in elenco_link:
-        # se la stringa è vuota, skippa l'iterazione attuale
+        # se la stringa è vuota, skippa l'iterazione attuale (può essere che nel txt ci siano delle righe vuote
+        # per separare fra di loro link di corsi differenti)
         if link_i == '':
             continue
         
@@ -253,6 +254,12 @@ def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
         # crea la folder del corso se non esiste già
         if not os.path.exists(path_cartella_corso):
             os.mkdir(path_cartella_corso)
+            # se la folder del corso non esisteva, non esisteva nemmeno il file .txt contenente il link originale della pagina
+            path_file_corso = path_cartella_corso + '/' + 'Link_corso.txt'
+            with open(path_file_corso, 'w') as file_link_ID:
+                link_pagina_corso = '/'.join(pezzi_link[0:pezzi_link.index(flag_pre_nome)+2])
+                testo_file = ['LINK PAGINA PRINCIPALE DEL CORSO:\n', link_pagina_corso]
+                file_link_ID.writelines(testo_file)
         
         download_main(link_i, parola_flag, path_cartella_download)
     
