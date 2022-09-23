@@ -278,8 +278,14 @@ def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
 
 #%% Prova lettura più link
 
+# su Windows
 nome_file = r'C:\Users\andre\OneDrive\Desktop\Link_MIT_OCW_prova.txt'
 parent_folder = 'C:\Andrea\MIT_OCW_download'
+
+# su Linux
+nome_file = '/home/andrea/Downloads/Link_MIT_OCW_prova.txt'
+parent_folder = '/home/andrea/Downloads/MIT_OCW_download'
+
 parola_flag = 'resources'
 
 create_folders_download(nome_file, parola_flag, parent_folder)
