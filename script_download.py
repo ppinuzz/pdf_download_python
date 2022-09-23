@@ -13,7 +13,6 @@
 #       https://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
 # 4) leggere il contenuto di un file in una volta sola, senza gli a-capo \n
 #       https://stackoverflow.com/questions/15233340/getting-rid-of-n-when-using-readlines
-       
 
 
 # Altri siti consultati, ma scartati in seguito come soluzioni (troppo complicati o poco chiari per me):
@@ -24,6 +23,17 @@
 # https://stackoverflow.com/questions/57270165/how-to-download-multiple-files-using-python-3-7
 # https://stackoverflow.com/questions/46264056/python-download-multiple-files-from-links-on-pages
 
+
+# MIGLIORAMENTI POSSIBILI:
+#   1) far scaricare altri tipi di file (.m, .zip principalmente)
+#   2) rendere lo script più generale, togliendo le parole flag hardcoded nello script e sfruttando meccanismi
+#       meno legati al caso particolare di MIT OCW
+#   3) aggiungere una CLI
+#   3.bis) dare le parole flag come input letto da CLI?
+#   4) far scrivere l'output anche dentro ad un file .log e non solo nella console in tempo reale, magari aggiungendo 
+#   anche il momento in cui si scarica, del tipo
+#       [21:37:17, 17-Aug-2022] Download del file   set1.pdf    da  ...
+#
 
 # per il webscraping vero e proprio
 import requests
@@ -161,7 +171,7 @@ def download_pdf(link_completi, path_cartella_download='nessuno'):
         nome_file_pdf = url.split('/')[-2] + '.pdf'
         nome_file = os.path.join(path_cartella_download, nome_file_pdf)
         
-        print('Download del file \t ' + nome_file_pdf + ' \t da \t' + url)
+        print('Download del file \t ' + nome_file_pdf + ' \t da \t ' + url)
         # fruga nel codice HTML alla ricerca delle stringhe che contengono il nome del file con la sua estensione
         for link in soup.select("a[href$='.pdf']"):
             # SOLUZIONE 2
@@ -209,7 +219,8 @@ def download_main(url_sito, parola_flag, path_cartella_download='nessuno'):
 
 def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
     
-    # crea una list in cui ogni elemento è una riga del file: o sono link o sono '' (gli a-capo sono sostituiti da spazi vuoti)
+    # crea una list in cui ogni elemento è una riga del file: o sono link o sono '' 
+    # (gli a-capo sono sostituiti da spazi vuoti)
     file_ID = open(path_file, 'r')
     elenco_link = file_ID.read().splitlines()
     
