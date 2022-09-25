@@ -33,7 +33,8 @@
 #   4) far scrivere l'output anche dentro ad un file .log e non solo nella console in tempo reale, magari aggiungendo 
 #   anche il momento in cui si scarica, del tipo
 #       [21:37:17, 17-Aug-2022] Download del file   set1.pdf    da  ...
-#
+#   5) aggiungere un controllo per evitare che file con nomi uguali vengano salvati con lo stesso nome
+#   (e quindi uno venga rimpiazzato dall'altro)
 
 # per il webscraping vero e proprio
 import requests
@@ -43,7 +44,7 @@ from bs4 import BeautifulSoup
 
 # per l'interazione con l'OS
 import os
-from sys import platform   # dà il nome dell'OS su cui sta girando lo script
+import sys
 import getpass
 
 # per la CLI
@@ -142,9 +143,9 @@ def download_pdf(link_completi, path_cartella_download='nessuno'):
     """
 
     # percorso di default della download folder
-    if 'win' in platform:
+    if 'win' in sys.platform:
         path_default = 'C:/Users/' + getpass.getuser() + '/Downloads/MIT_OCW'
-    elif 'linux' in platform:
+    elif 'linux' in sys.platform:
         path_default = '/home/' + getpass.getuser() + '/Downloads/MIT_OCW'
 
     # se non è assegnato un valore al path della download folder, viene usato il default
@@ -198,7 +199,7 @@ def download_main(url_sito, parola_flag, path_cartella_download='nessuno'):
     parola_flag : stringa
         parola contenuta nei link delle pagine di download dei .pdf che permette di distinguerli dagli altri link
         contenuti nella stessa pagina (e.g. per MIT OCW, 'resources' è presente solo nei link dei .pdf)
-    path_cartella_download : stringa, OPTIONAL
+    path_cartella_download : stringa, optional
         path della cartella in cui verranno salvati i file scaricati (se non esiste, viene creata)
         può essere fornita in 2 modi diversi:
             1) come RAW STRING: r'C:\Andrea\download'
@@ -218,6 +219,37 @@ def download_main(url_sito, parola_flag, path_cartella_download='nessuno'):
 
 
 def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
+    """
+    Legge un elenco di link salvati in un file .txt (un link per riga, è possibile eventualmente
+    separate i link fra di loro con una riga vuota) e salva i file .pdf contenuti nelle download pages
+    accessibili dai link presenti nel .txt. I .pdf sono salvati in sottocartelle divise per tipo di file
+    (lecture notes, assignments, projects, ecc), a loro volta contenute in una cartella chiamata come il corso MIT OCW
+    corrispondente.
+
+    Parameters
+    ----------
+    path_file : stringa 
+        path assoluto del file .txt contenente i link, uò essere fornito in 2 modi diversi:
+            1) come RAW STRING: r'C:\Andrea\file_link.txt'
+            2) con gli slash '/' al posto dei backslash '\': r'C:/Andrea/file_link.txt'
+    parola_flag : stringa
+        parola contenuta nei link delle pagine di download dei .pdf che permette di distinguerli dagli altri link
+        contenuti nella stessa pagina (e.g. per MIT OCW, 'resources' è presente solo nei link dei .pdf)
+    parent_folder : stringa, optional
+        path della cartella in cui verranno create le cartelle dei singoli corsi.
+        il valore di default default dipende dal sistema operativo:
+            C:/Users/nome_utente/Downloads/MIT_OCW          su Windows
+            /home/nome_utente/Downloads/MIT_OCW             su Linux  
+    Returns
+    -------
+    None.
+
+    """
+
+    # le raw string vengono gestite mettendo un '\\' al posto del '\' singolo e,
+    # per poter essere usato anche su Linux, i '\' vanno sostituiti con gli '/'
+    if '\\' in path_file:
+        path_file.replace('\\', '/')
     
     # crea una list in cui ogni elemento è una riga del file: o sono link o sono '' 
     # (gli a-capo sono sostituiti da spazi vuoti)
@@ -226,9 +258,9 @@ def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
     
     
     # percorso di default della parent folder in cui saranno salvate le cartelle del corso
-    if 'win' in platform:
+    if 'win' in sys.platform:
         parent_default = 'C:/Users/' + getpass.getuser() + '/Downloads/MIT_OCW'
-    elif 'linux' in platform:
+    elif 'linux' in sys.platform:
         parent_default = '/home/' + getpass.getuser() + '/Downloads/MIT_OCW'
     
     # se non viene data la parent folder (e quindi il valore di default 'nessuno' non viene sovrascritto),
@@ -275,6 +307,11 @@ def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
         
         download_main(link_i, parola_flag, path_cartella_download)
     
+
+#%% Command Line Interface
+
+
+
 
 #%% Main del file
 
