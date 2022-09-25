@@ -48,7 +48,7 @@ import sys
 import getpass
 
 # per la CLI
-#import argparse
+import argparse
 
 
 def get_url_list(url_sito, parola_flag):
@@ -310,7 +310,23 @@ def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
 
 #%% Command Line Interface
 
+# crea il parser per leggere i comandi da CLI
+my_parser = argparse.ArgumentParser(description='Legge i link raccolti in un file .txt, \
+                                    scarica i .pdf contenuti in quelle pagine e li salva in cartelle e sottocartelle\
+                                    strutturate come le pagine nel link originale')
 
+# elenco dei possibili argomenti che il parser dovrà gestire
+my_parser.add_argument('File_txt', metavar='file_txt', type=str, help='path del file .txt contenente i link')
+my_parser.add_argument('Flag', metavar='flag', type=str, help='parola contenuta nel link di download che lo renda distinguibile da altri link (e.g. "resources" per MIT OCW)')
+my_parser.add_argument('Parent', metavar='parent', type=str, help='path della cartella in cui verrà creata la cartella del corso (nelle cui sottocartelle saranno salvati i file)')
+
+# viene eseguito il parser, che leggerà gli argomenti forniti da CLI
+argomenti_input = my_parser.parse_args()
+
+# poi gli argomenti vengono estratti dal Namespace object 'argomenti_input' e salvati nelle variabili usate nello script
+nome_file = argomenti_input.File_txt
+parola_flag = argomenti_input.Flag
+parent_folder = argomenti_input.Parent
 
 
 #%% Main del file
