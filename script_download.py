@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Lo scipt originale è stato perso il 31/07/2022 a causa di un danneggiamento dell'HDD del PC fisso con sopra Windows 7
@@ -9,7 +10,9 @@
 # 2) creare una cartella per il salvataggio + scaricare e salvare i file pdf + rinominare i file automaticamente (risposta di SIM + medyas)
 #       https://stackoverflow.com/questions/54616638/download-all-pdf-files-from-a-website-using-python
 # 3) ottenere il nome dell'utente (e.g. 'andre')
-#   https://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
+#       https://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
+# 4) leggere il contenuto di un file in una volta sola, senza gli a-capo \n
+#       https://stackoverflow.com/questions/15233340/getting-rid-of-n-when-using-readlines
 
 
 # Altri siti consultati, ma scartati in seguito come soluzioni (troppo complicati o poco chiari per me):
@@ -21,15 +24,31 @@
 # https://stackoverflow.com/questions/46264056/python-download-multiple-files-from-links-on-pages
 
 
+# MIGLIORAMENTI POSSIBILI:
+#   1) far scaricare altri tipi di file (.m, .zip principalmente)
+#   2) rendere lo script più generale, togliendo le parole flag hardcoded nello script e sfruttando meccanismi
+#       meno legati al caso particolare di MIT OCW
+#   3) aggiungere una CLI
+#   3.bis) dare le parole flag come input letto da CLI?
+#   4) far scrivere l'output anche dentro ad un file .log e non solo nella console in tempo reale, magari aggiungendo 
+#   anche il momento in cui si scarica, del tipo
+#       [21:37:17, 17-Aug-2022] Download del file   set1.pdf    da  ...
+#   5) aggiungere un controllo per evitare che file con nomi uguali vengano salvati con lo stesso nome
+#   (e quindi uno venga rimpiazzato dall'altro)
+
 # per il webscraping vero e proprio
 import requests
 from urllib.parse import urljoin
 from urllib import request
 from bs4 import BeautifulSoup
+
 # per l'interazione con l'OS
 import os
-from sys import platform   # dà il nome dell'OS su cui sta girando lo script
+import sys
 import getpass
+
+# per la CLI
+import argparse
 
 
 def get_url_list(url_sito, parola_flag):
@@ -124,9 +143,9 @@ def download_pdf(link_completi, path_cartella_download='nessuno'):
     """
 
     # percorso di default della download folder
-    if 'win' in platform:
+    if 'win' in sys.platform:
         path_default = 'C:/Users/' + getpass.getuser() + '/Downloads/MIT_OCW'
-    elif 'linux' in platform:
+    elif 'linux' in sys.platform:
         path_default = '/home/' + getpass.getuser() + '/Downloads/MIT_OCW'
 
     # se non è assegnato un valore al path della download folder, viene usato il default
@@ -153,7 +172,7 @@ def download_pdf(link_completi, path_cartella_download='nessuno'):
         nome_file_pdf = url.split('/')[-2] + '.pdf'
         nome_file = os.path.join(path_cartella_download, nome_file_pdf)
         
-        print('Download del file \t ' + nome_file_pdf + ' \t da \t' + url)
+        print('Download del file \t ' + nome_file_pdf + ' \t da \t ' + url)
         # fruga nel codice HTML alla ricerca delle stringhe che contengono il nome del file con la sua estensione
         for link in soup.select("a[href$='.pdf']"):
             # SOLUZIONE 2
@@ -180,7 +199,7 @@ def download_main(url_sito, parola_flag, path_cartella_download='nessuno'):
     parola_flag : stringa
         parola contenuta nei link delle pagine di download dei .pdf che permette di distinguerli dagli altri link
         contenuti nella stessa pagina (e.g. per MIT OCW, 'resources' è presente solo nei link dei .pdf)
-    path_cartella_download : stringa, OPTIONAL
+    path_cartella_download : stringa, optional
         path della cartella in cui verranno salvati i file scaricati (se non esiste, viene creata)
         può essere fornita in 2 modi diversi:
             1) come RAW STRING: r'C:\Andrea\download'
@@ -199,14 +218,138 @@ def download_main(url_sito, parola_flag, path_cartella_download='nessuno'):
     download_pdf(elenco_link, path_cartella_download)
 
 
+def create_folders_download(path_file, parola_flag, parent_folder='nessuno'):
+    """
+    Legge un elenco di link salvati in un file .txt (un link per riga, è possibile eventualmente
+    separate i link fra di loro con una riga vuota) e salva i file .pdf contenuti nelle download pages
+    accessibili dai link presenti nel .txt. I .pdf sono salvati in sottocartelle divise per tipo di file
+    (lecture notes, assignments, projects, ecc), a loro volta contenute in una cartella chiamata come il corso MIT OCW
+    corrispondente.
+
+    Parameters
+    ----------
+    path_file : stringa 
+        path assoluto del file .txt contenente i link, uò essere fornito in 2 modi diversi:
+            1) come RAW STRING: r'C:\Andrea\file_link.txt'
+            2) con gli slash '/' al posto dei backslash '\': r'C:/Andrea/file_link.txt'
+    parola_flag : stringa
+        parola contenuta nei link delle pagine di download dei .pdf che permette di distinguerli dagli altri link
+        contenuti nella stessa pagina (e.g. per MIT OCW, 'resources' è presente solo nei link dei .pdf)
+    parent_folder : stringa, optional
+        path della cartella in cui verranno create le cartelle dei singoli corsi.
+        il valore di default default dipende dal sistema operativo:
+            C:/Users/nome_utente/Downloads/MIT_OCW          su Windows
+            /home/nome_utente/Downloads/MIT_OCW             su Linux  
+    Returns
+    -------
+    None.
+
+    """
+
+    # le raw string vengono gestite mettendo un '\\' al posto del '\' singolo e,
+    # per poter essere usato anche su Linux, i '\' vanno sostituiti con gli '/'
+    if '\\' in path_file:
+        path_file.replace('\\', '/')
+    
+    # crea una list in cui ogni elemento è una riga del file: o sono link o sono '' 
+    # (gli a-capo sono sostituiti da spazi vuoti)
+    file_ID = open(path_file, 'r')
+    elenco_link = file_ID.read().splitlines()
+    
+    
+    # percorso di default della parent folder in cui saranno salvate le cartelle del corso
+    if 'win' in sys.platform:
+        parent_default = 'C:/Users/' + getpass.getuser() + '/Downloads/MIT_OCW'
+    elif 'linux' in sys.platform:
+        parent_default = '/home/' + getpass.getuser() + '/Downloads/MIT_OCW'
+    
+    # se non viene data la parent folder (e quindi il valore di default 'nessuno' non viene sovrascritto),
+    # usa il valore di default
+    if 'nessuno' in parent_folder:
+        parent_folder = parent_default
+    # le raw string vengono gestite mettendo un '\\' al posto del '\' singolo e,
+    # per poter essere usato anche su Linux, i '\' vanno sostituiti con gli '/'
+    elif '\\' in parent_folder:
+        parent_folder.replace('\\', '/')
+    
+    # crea la parent folder se non esiste già
+    if not os.path.exists(parent_folder):
+        os.mkdir(parent_folder)
+    
+    for link_i in elenco_link:
+        # se la stringa è vuota, skippa l'iterazione attuale (può essere che nel txt ci siano delle righe vuote
+        # per separare fra di loro link di corsi differenti)
+        if link_i == '':
+            continue
+        
+        # nel caso dei link del MIT OCW, dopo la parola 'courses' si trova il nome del corso nel link
+        # (e.g. 'https://ocw.mit.edu/courses/10-52-mechanics-of-fluids-spring-2006/pages/assignments/')
+        flag_pre_nome = 'courses'
+        pezzi_link = link_i.split('/')
+        # trova la parola in pezzi_link successiva a flag_pre_nome (trova l'indice della flag, va avanti di 1 e prende quella parola)
+        nome_corso = pezzi_link[pezzi_link.index(flag_pre_nome) + 1]
+        # e il nome del tipo di risorsa (exams, lecture-notes, assignments, ecc) che si trova 2 parole dopo il nome del corso nel link,
+        # cioè 3 parole dopo la flag (nel caso di MIT OCW)
+        nome_folder = pezzi_link[pezzi_link.index(flag_pre_nome) + 3]
+        
+        path_cartella_corso = parent_folder + '/' + nome_corso
+        path_cartella_download = path_cartella_corso + '/' + nome_folder
+        
+        # crea la folder del corso se non esiste già
+        if not os.path.exists(path_cartella_corso):
+            os.mkdir(path_cartella_corso)
+            # se la folder del corso non esisteva, non esisteva nemmeno il file .txt contenente il link originale della pagina
+            path_file_corso = path_cartella_corso + '/' + 'Link_corso.txt'
+            with open(path_file_corso, 'w') as file_link_ID:
+                link_pagina_corso = '/'.join(pezzi_link[0:pezzi_link.index(flag_pre_nome)+2])
+                testo_file = ['LINK PAGINA PRINCIPALE DEL CORSO:\n', link_pagina_corso]
+                file_link_ID.writelines(testo_file)
+        
+        download_main(link_i, parola_flag, path_cartella_download)
+    
+
+#%% Command Line Interface
+
+# crea il parser per leggere i comandi da CLI
+my_parser = argparse.ArgumentParser(description='Legge i link raccolti in un file .txt, \
+                                    scarica i .pdf contenuti in quelle pagine e li salva in cartelle e sottocartelle\
+                                    strutturate come le pagine nel link originale')
+
+# elenco dei possibili argomenti che il parser dovrà gestire
+my_parser.add_argument('File_txt', metavar='file_txt', type=str, help='path del file .txt contenente i link')
+my_parser.add_argument('Flag', metavar='flag', type=str, help='parola contenuta nel link di download che lo renda distinguibile da altri link (e.g. "resources" per MIT OCW)')
+my_parser.add_argument('Parent', metavar='parent', type=str, help='path della cartella in cui verrà creata la cartella del corso (nelle cui sottocartelle saranno salvati i file)')
+
+# viene eseguito il parser, che leggerà gli argomenti forniti da CLI
+argomenti_input = my_parser.parse_args()
+
+# poi gli argomenti vengono estratti dal Namespace object 'argomenti_input' e salvati nelle variabili usate nello script
+nome_file = argomenti_input.File_txt
+parola_flag = argomenti_input.Flag
+parent_folder = argomenti_input.Parent
+
 
 #%% Main del file
 
-sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
+#sito = 'https://ocw.mit.edu/courses/16-225-computational-mechanics-of-materials-fall-2003/pages/assignments/'
 #cartella = '/home/andrea/Downloads'
 #cartella = r'/home/andrea/Downloads'
-parola_flag = 'resources'
+#parola_flag = 'resources'
 
 #download_main(sito, parola_flag, cartella)
-download_main(sito, parola_flag)
+#download_main(sito, parola_flag)
 
+
+#%% Prova lettura più link
+
+# su Windows
+nome_file = r'C:\Users\andre\OneDrive\Desktop\Link_MIT_OCW_prova.txt'
+parent_folder = 'C:\Andrea\MIT_OCW_download'
+
+# su Linux
+nome_file = '/home/andrea/Downloads/Link_MIT_OCW_prova.txt'
+parent_folder = '/home/andrea/Downloads/MIT_OCW_download'
+
+parola_flag = 'resources'
+
+create_folders_download(nome_file, parola_flag, parent_folder)
